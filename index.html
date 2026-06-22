@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bird Race Nations</title>
+
+<style>
+    html,body{
+        margin:0;
+        background:#000;
+        overflow:hidden;
+        font-family:Arial, sans-serif;
+        height:100%;
+    }
+
+    #wrap{
+        position:relative;
+        width:100%;
+        height:100%;
+        overflow:hidden;
+        background:#000;
+    }
+
+    canvas{
+        display:block;
+        background:#0c2b14;
+        transform-origin: 0 0;
+    }
+
+    /* ── BARRA INFERIOR ── */
+    #bottom-bar{
+        position:fixed;
+        bottom:0; left:0; right:0;
+        background:#0a0a0a;
+        border-top:2px solid #1a4a28;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+        padding:6px 12px;
+        z-index:200;
+        flex-wrap:wrap;
+    }
+    #conn-status{
+        font-size:10px;
+        display:flex;
+        align-items:center;
+        gap:5px;
+        color:#888;
+        font-weight:bold;
+    }
+    .dot{width:9px;height:9px;background:#444;border-radius:50%;box-shadow:0 0 5px #000;}
+    .dot.online{background:#2ecc71;box-shadow:0 0 8px #2ecc71;}
+    #btn-config-bird{
+        padding:6px 14px;
+        background:#111;
+        border:1px solid #1a4a28;
+        color:#2ecc71;
+        cursor:pointer;
+        border-radius:6px;
+        font-size:11px;
+        font-weight:bold;
+    }
+    #btn-config-bird:hover{background:#1a2a1a;}
+
+    /* ── MODAL ── */
+    .bird-modal{
+        position:fixed;
+        top:50%;left:50%;
+        transform:translate(-50%,-50%);
+        width:94vw;
+        max-width:600px;
+        max-height:90vh;
+        overflow-y:auto;
+        background:#0d1a0f;
+        border:2px solid #2ecc71;
+        border-radius:12px;
+        padding:16px;
+        z-index:3000;
+        display:none;
+        color:#fff;
+        box-shadow:0 0 30px rgba(0,0,0,0.95);
+        box-sizing:border-box;
+    }
+    .bird-modal h3{
+        margin:0 0 12px 0;
+        color:#2ecc71;
+        font-size:14px;
+        font-weight:900;
+        text-align:center;
+        text-transform:uppercase;
+        letter-spacing:1px;
+    }
+    .ms{
+        background:#111;
+        border:1px solid #1a4a28;
+        border-radius:6px;
+        padding:10px 12px;
+        margin-bottom:10px;
+        box-sizing:border-box;
+    }
+    .ms-title{
+        font-size:10px;
+        color:#2ecc71;
+        text-transform:uppercase;
+        font-weight:bold;
+        margin-bottom:8px;
+        letter-spacing:0.5px;
+    }
+    .form-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:2px;align-items:center;}
+    .id{padding:6px 8px;background:#000;color:#fff;border:1px solid #1a4a28;border-radius:4px;font-size:11px;box-sizing:border-box;}
+    .sd{padding:6px 8px;background:#000;color:#fff;border:1px solid #1a4a28;border-radius:4px;font-size:11px;height:30px;box-sizing:border-box;}
+    .badd{background:#2ecc71;border:none;color:#000;padding:6px 12px;cursor:pointer;font-weight:bold;font-size:11px;border-radius:4px;height:30px;}
+    .badd:hover{background:#27ae60;color:#fff;}
+    .btest{background:#27ae60;color:#fff;border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:bold;}
+    .btest:hover{background:#1e8449;}
+    .bdel{color:#e74c3c;cursor:pointer;font-weight:bold;background:transparent;border:none;padding:0 2px;font-size:14px;}
+    .event-list-container{max-height:110px;overflow-y:auto;background:#090909;border:1px solid #1a4a28;border-radius:4px;padding:2px 4px;box-sizing:border-box;}
+    .event-item{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;font-size:11px;border-bottom:1px solid #161616;}
+    .event-item:last-child{border-bottom:none;}
+    .event-actions-group{display:flex;gap:6px;align-items:center;}
+    .breset{width:100%;margin-top:5px;padding:8px;background:#c0392b;color:#fff;border:none;font-weight:bold;cursor:pointer;border-radius:4px;font-size:11px;box-sizing:border-box;}
+    #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2999;display:none;}
+
+    /* ── NOTIFICAÇÕES TIK ── */
+    #ev-notif-panel{
+        position:fixed;
+        bottom:60px;
+        right:10px;
+        width:220px;
+        display:flex;
+        flex-direction:column-reverse;
+        gap:5px;
+        z-index:100;
+        pointer-events:none;
+    }
+    .evNotif{
+        display:flex;
+        align-items:center;
+        gap:7px;
+        background:rgba(0,0,0,0.88);
+        border:1px solid #1a4a28;
+        border-radius:8px;
+        padding:5px 8px;
+        animation:evSlideIn .3s ease;
+        font-size:11px;
+        color:#fff;
+        line-height:1.3;
+    }
+    .evNotif .evAvatar{
+        width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;border:2px solid #2ecc71;
+    }
+    .evNotif .evText{flex:1;}
+    .evNotif .evText b{color:#2ecc71;}
+    @keyframes evSlideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+</style>
+</head>
+
+<body>
+
+<div id="wrap">
+<canvas id="game" width="1080" height="1080"></canvas>
+</div>
+
+<!-- ── BARRA INFERIOR ── -->
+<div id="bottom-bar">
+    <div id="conn-status">
+        <div id="connDot" class="dot"></div> TIKFINITY
+    </div>
+    <button id="btn-config-bird" onclick="toggleBirdModal()">⚙️ EVENTOS</button>
+    <button class="badd" style="font-size:10px;height:28px;padding:0 10px;" onclick="birdTestImpulso()">🐦 TESTAR IMPULSO</button>
+    <div style="display:flex;align-items:center;gap:4px;border-left:1px solid #1a4a28;padding-left:10px;">
+        <button class="badd" style="font-size:16px;width:28px;height:28px;padding:0;line-height:1;" onclick="ajustarZoom(-0.05)">−</button>
+        <span id="zoom-label" style="font-size:11px;color:#2ecc71;font-weight:bold;min-width:40px;text-align:center;">100%</span>
+        <button class="badd" style="font-size:16px;width:28px;height:28px;padding:0;line-height:1;" onclick="ajustarZoom(+0.05)">+</button>
+    </div>
+    <button class="badd" style="font-size:10px;height:28px;padding:0 12px;background:#1a6a3a;" onclick="salvarConfig()">💾 SALVAR</button>
+</div>
+
+<!-- ── NOTIFICAÇÕES ── -->
+<div id="ev-notif-panel"></div>
+
+<!-- ── OVERLAY ── -->
+<div id="modal-overlay" onclick="toggleBirdModal()"></div>
+
+<!-- ── MODAL DE EVENTOS ── -->
+<div id="birdConfigModal" class="bird-modal">
+    <h3>🐦 Bird Race — Gerenciador de Eventos TikTok</h3>
+
+    <!-- TIMES -->
+    <div class="ms">
+        <div class="ms-title">🏁 Times em corrida (escolha quais países competem)</div>
+        <div id="times-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+
+    <!-- PRESENTES → TIMES -->
+    <div class="ms">
+        <div class="ms-title">🎁 Presente do TikTok → Impulso para qual time</div>
+        <div class="form-row">
+            <select id="giftSelectorBird" class="sd" style="width:220px;" onchange="syncGiftInputBird()">
+                <option value="">-- Escolha um Presente --</option>
+                <option value="CUSTOM">-- DIGITAR ID/NOME DO PRESENTE --</option>
+                <option value="5269">5269 - TikTok</option>
+                <option value="5655">5655 - Rose</option>
+                <option value="5760">5760 - Weights</option>
+                <option value="5827">5827 - Ice Cream Cone</option>
+                <option value="6064">6064 - GG</option>
+                <option value="6328">6328 - Sem descrição</option>
+                <option value="6926">6926 - Basketball</option>
+                <option value="9818">9818 - Sem descrição</option>
+                <option value="6247">6247 - Heart</option>
+                <option value="6246">6246 - Thumbs Up</option>
+                <option value="5487">5487 - Finger Heart</option>
+                <option value="5719">5719 - Fire</option>
+                <option value="5333">5333 - Coffee</option>
+                <option value="6113">6113 - Taco</option>
+                <option value="6052">6052 - Gamepad</option>
+                <option value="6169">6169 - Tennis</option>
+                <option value="6249">6249 - Rugby Ball</option>
+                <option value="7250">7250 - Hot Water Bottle</option>
+                <option value="9097">9097 - Birthday Cake</option>
+                <option value="6890">6890 - Love You</option>
+                <option value="6432">6432 - Star</option>
+                <option value="5657">5657 - Lollipop</option>
+                <option value="5780">5780 - Bouquet Flower</option>
+                <option value="5879">5879 - Doughnut</option>
+                <option value="6097">6097 - Little Crown</option>
+            </select>
+            <input type="text" id="giftIdBird" class="id" placeholder="ID ou nome" style="width:120px;">
+            <select id="teamForGiftBird" class="sd" style="width:130px;">
+                <option value="">-- Time --</option>
+            </select>
+            <input type="number" id="giftRepeatBird" class="id" style="width:44px;text-align:center;" min="1" max="10" value="1" title="Impulsos por presente">
+            <button onclick="addGiftMapping()" class="badd">+ ADD</button>
+        </div>
+        <div class="event-list-container" id="giftListBird"></div>
+    </div>
+
+    <!-- LIKES -->
+    <div class="ms">
+        <div class="ms-title">❤️ Likes → Impulso</div>
+        <div class="form-row">
+            <span style="font-size:11px;color:#aaa;">A cada</span>
+            <input type="number" id="likeThreshBird" class="id" style="width:55px;text-align:center;" min="1" value="50">
+            <span style="font-size:11px;color:#aaa;">likes, impulsionar:</span>
+            <select id="likeTeamBird" class="sd" style="width:130px;"><option value="">-- Time --</option></select>
+            <button onclick="saveLikeBird()" class="badd" style="background:#27ae60;">SALVAR</button>
+            <button onclick="birdTestImpulso()" class="btest">TESTAR</button>
+        </div>
+    </div>
+
+    <!-- MEMBRO / SHARE -->
+    <div class="ms">
+        <div class="ms-title">👑 Novo Membro & 📤 Compartilhamento</div>
+        <div class="form-row" style="margin-bottom:8px;">
+            <span style="font-size:11px;color:#aaa;width:70px;">Membro:</span>
+            <select id="memberTeamBird" class="sd" style="width:130px;"><option value="">-- Time --</option></select>
+            <input type="number" id="memberRepBird" class="id" style="width:44px;text-align:center;" min="1" max="10" value="1" title="Impulsos">
+            <button onclick="saveMemberBird()" class="badd" style="background:#27ae60;">SALVAR</button>
+            <button onclick="testMemberBird()" class="btest">TESTAR</button>
+        </div>
+        <div class="form-row">
+            <span style="font-size:11px;color:#aaa;width:70px;">Share:</span>
+            <select id="shareTeamBird" class="sd" style="width:130px;"><option value="">-- Time --</option></select>
+            <input type="number" id="shareRepBird" class="id" style="width:44px;text-align:center;" min="1" max="10" value="1" title="Impulsos">
+            <button onclick="saveShareBird()" class="badd" style="background:#27ae60;">SALVAR</button>
+            <button onclick="testShareBird()" class="btest">TESTAR</button>
+        </div>
+    </div>
+
+    <button onclick="toggleBirdModal()" style="width:100%;padding:8px;background:#1a4a28;color:#2ecc71;border:1px solid #2ecc71;border-radius:6px;font-weight:bold;cursor:pointer;font-size:12px;">✕ FECHAR</button>
+</div>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const DISTANCIA = 3000;
+
+/* =====================================================
+   8 SELEÇÕES FIXAS
+   - flag: ícone de bandeira (fundo da pista) | null = desenhado no código
+   - sheet: sprite sheet de animação (6 cols x 6 rows = 36 frames)
+   - frameW / frameH: tamanho de cada frame dentro do sheet
+===================================================== */
+
+const paises = [
+    {
+        nome:"Alemanha",
+        sigla:"AL",
+        flagArq:"germany.png",
+        sheetArq:"alamanha1.png",
+        frameW:482, frameH:512
+    },
+    {
+        nome:"Brasil",
+        sigla:"BR",
+        flagArq:"Brasil.png",
+        sheetArq:"brasil1.png",
+        frameW:544, frameH:440
+    },
+    {
+        nome:"México",
+        sigla:"MX",
+        flagArq:"mexico.png",
+        sheetArq:"mexico1.png",
+        frameW:408, frameH:446
+    },
+    {
+        nome:"Espanha",
+        sigla:"ES",
+        flagArq:"spain.png",
+        sheetArq:"espanha1.png",
+        frameW:490, frameH:474
+    },
+    {
+        nome:"Portugal",
+        sigla:"PT",
+        flagArq:"portugal.png",
+        sheetArq:"portugal1.png",
+        frameW:440, frameH:562
+    },
+    {
+        nome:"Itália",
+        sigla:"IT",
+        flagArq:null, // sem ícone no pacote -> desenhado via canvas
+        sheetArq:"italia1.png",
+        frameW:466, frameH:490
+    },
+    {
+        nome:"Japão",
+        sigla:"JP",
+        flagArq:"japao.png",
+        sheetArq:"japao1.png",
+        frameW:390, frameH:476
+    },
+    {
+        nome:"França",
+        sigla:"FR",
+        flagArq:"franca.png",
+        sheetArq:"franca1.png",
+        frameW:456, frameH:540
+    }
+];
+
+const COLS = 6;
+const TOTAL_FRAMES = 36;
+
+/* =====================================================
+   PRESENTES (coluna fixa do lado direito, balançando)
+===================================================== */
+
+const presentes = [
+    { arq:"5269.png" },
+    { arq:"5655.png" },
+    { arq:"5760.png" },
+    { arq:"5827.png" },
+    { arq:"6064.png" },
+    { arq:"6328.png" },
+    { arq:"6926.png" },
+    { arq:"9818.png" }
+];
+
+presentes.forEach((g,i)=>{
+    g.img = new Image();
+    g.img.src = "assets/" + g.arq;
+    g.fase = i * 0.7;          // defasagem para não balançar tudo igual
+    g.velocidade = 0.04 + (i%3)*0.012;
+});
+
+const IMPULSO_BASE = 12;
+const IMPULSO_MAX  = 40;
+
+/* =====================================================
+   AVATAR DO SEGUIDOR (impulso visual)
+   Quando o seguidor manda o impulso, o avatar dele "sai"
+   do HUD esquerdo (onde fica o número 1-8) e voa até o
+   pássaro do jogador na pista. Ao colidir, gera o impulso
+   de fato + efeito de poof.
+
+   OBS: ainda não temos as imagens reais dos avatares —
+   por enquanto é desenhado um placeholder circular.
+   Quando as imagens chegarem, basta trocar o desenho
+   dentro de desenharProjeteis() pelo drawImage do avatar
+   correspondente ao lane (pr.lane).
+===================================================== */
+
+const HUD_TX = 22; // mantido para compatibilidade
+
+// cache de imagens de presentes carregados dinamicamente
+const giftImageCache = {};
+
+function getGiftImage(giftId){
+    if(!giftId) return null;
+    const key = String(giftId);
+    if(!giftImageCache[key]){
+        const img = new Image();
+        img.src = "assets/" + key + ".png";
+        giftImageCache[key] = img;
+    }
+    return giftImageCache[key];
+}
+
+const projeteis = [];
+
+function lancarPresente(lane, sender, giftId){
+
+    const c = corredores[lane];
+    if(!c) return;
+    if(projeteis.some(p=>p.lane === lane)) return;
+
+    // origem: lado esquerdo da tela, na altura da pista
+    const origemX = 30;
+    const origemY = c.y;
+
+    // pré-carregar imagem do presente
+    if(giftId) getGiftImage(giftId);
+
+    projeteis.push({
+        lane,
+        sender: sender || null,
+        giftId: giftId || null,
+        x: origemX,
+        y: origemY,
+        startX: origemX,
+        startY: origemY,
+        progresso: 0,
+        velocidadeProgresso: 0.085,
+        rotacao: 0
+    });
+
+}
+
+function atualizarProjeteis(){
+
+    for(let i=projeteis.length-1; i>=0; i--){
+
+        const pr = projeteis[i];
+        const c = corredores[pr.lane];
+
+        if(!c){ projeteis.splice(i,1); continue; }
+
+        pr.progresso += pr.velocidadeProgresso;
+        pr.rotacao += 0.35;
+
+        // alvo = posição atual do pássaro na pista (xTela, y)
+        const alvoX = xMundoParaTela(c.x);
+        const alvoY = c.y;
+
+        if(pr.progresso >= 1){
+
+            // ---- COLISÃO: aplica o impulso de fato ----
+            c.impulso = Math.min(c.impulso + IMPULSO_BASE, IMPULSO_MAX);
+            c.efeitoEmpurrao = 14;
+
+            // efeito de poof na posição de impacto
+            criarPoof(alvoX, alvoY);
+
+            projeteis.splice(i,1);
+            continue;
+
+        }
+
+        // interpolação com leve arco (curva) para ficar mais orgânico
+        const t = pr.progresso;
+        const ease = t*t*(3-2*t); // smoothstep
+        pr.x = pr.startX + (alvoX - pr.startX) * ease;
+
+        const arco = Math.sin(t*Math.PI) * -40; // sobe e desce no meio do caminho
+        pr.y = pr.startY + (alvoY - pr.startY) * ease + arco;
+
+    }
+
+}
+
+/* ---------- Efeito de poof (estourinho de partículas) ---------- */
+
+const poofs = [];
+
+function criarPoof(x,y){
+
+    const particulas = [];
+    const n = 10;
+
+    for(let i=0;i<n;i++){
+        const ang = (Math.PI*2/n)*i + Math.random()*0.4;
+        const vel = 2.2 + Math.random()*1.8;
+        particulas.push({
+            x:0, y:0,
+            vx: Math.cos(ang)*vel,
+            vy: Math.sin(ang)*vel,
+            vida: 1
+        });
+    }
+
+    poofs.push({ x, y, particulas, vida:1 });
+
+}
+
+function atualizarPoofs(){
+
+    for(let i=poofs.length-1; i>=0; i--){
+
+        const p = poofs[i];
+        p.vida -= 0.045;
+
+        p.particulas.forEach(pt=>{
+            pt.x += pt.vx;
+            pt.y += pt.vy;
+            pt.vx *= 0.92;
+            pt.vy *= 0.92;
+        });
+
+        if(p.vida <= 0) poofs.splice(i,1);
+
+    }
+
+}
+
+function desenharPoofs(){
+
+    poofs.forEach(p=>{
+
+        const alpha = Math.max(p.vida, 0);
+
+        // anel de explosão
+        ctx.save();
+        ctx.globalAlpha = alpha*0.6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, (1-p.vida)*36, 0, Math.PI*2);
+        ctx.strokeStyle = "#ffe066";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        // partículas
+        p.particulas.forEach(pt=>{
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(p.x+pt.x, p.y+pt.y, 4*alpha+1, 0, Math.PI*2);
+            ctx.fillStyle = "#fff3b0";
+            ctx.fill();
+            ctx.restore();
+        });
+
+    });
+
+}
+
+function desenharProjeteis(){
+
+    projeteis.forEach(pr=>{
+
+        const raio = 22;
+
+        ctx.save();
+        ctx.translate(pr.x, pr.y);
+        ctx.rotate(pr.rotacao * 0.12);
+
+        // sombra
+        ctx.beginPath();
+        ctx.arc(0, 0, raio+5, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fill();
+
+        // fundo circular
+        ctx.beginPath();
+        ctx.arc(0, 0, raio, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(30,30,30,0.75)";
+        ctx.fill();
+        ctx.strokeStyle = "#ffe066";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // imagem do presente enviado (ou emoji fallback)
+        const giftImg = pr.giftId ? getGiftImage(pr.giftId) : null;
+        const size = raio * 1.7;
+
+        if(giftImg && giftImg.complete && giftImg.naturalWidth > 0){
+            ctx.drawImage(giftImg, -size/2, -size/2, size, size);
+        } else {
+            // fallback enquanto imagem carrega
+            ctx.font = "bold " + Math.round(size*0.82) + "px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🎁", 0, 1);
+        }
+
+        // nome do remetente acima do projétil
+        if(pr.sender){
+            ctx.save();
+            ctx.rotate(-pr.rotacao * 0.12);
+            ctx.font = "bold 10px Arial";
+            ctx.fillStyle = "#fff";
+            ctx.strokeStyle = "rgba(0,0,0,0.85)";
+            ctx.lineWidth = 3;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+            ctx.strokeText(pr.sender, 0, -raio - 4);
+            ctx.fillText(pr.sender, 0, -raio - 4);
+            ctx.restore();
+        }
+
+        ctx.restore();
+
+    });
+
+}
+
+/* ---------- Carregar imagens ---------- */
+
+const arenaImg = new Image();
+arenaImg.src = "assets/arena.png";
+
+paises.forEach(p=>{
+
+    p.flagImg = null;
+
+    if(p.flagArq){
+        p.flagImg = new Image();
+        p.flagImg.src = "assets/" + p.flagArq;
+    }
+
+    p.sheetImg = new Image();
+    p.sheetImg.src = "assets/" + p.sheetArq;
+
+});
+
+/* ---------- Corredores ---------- */
+
+const LANE_HEIGHT = 110;
+const LANE_START_Y = 130;
+
+const corredores = [];
+
+function criarCorredor(pais, lane){
+
+    corredores.push({
+
+        pais,
+        x:0,
+        y:LANE_START_Y + lane*LANE_HEIGHT + LANE_HEIGHT/2,
+        targetY: LANE_START_Y + lane*LANE_HEIGHT + LANE_HEIGHT/2,
+        lane,
+
+        impulso: 0,
+        fricao: 0.93,
+
+        frame:0,
+        tick:0,
+
+        terminou:false,
+        efeitoEmpurrao: 0,
+        pontos: 0,
+        chegandoEfeito: 0  // efeito visual ao cruzar a linha
+
+    });
+
+}
+
+paises.forEach((p,i)=>criarCorredor(p,i));
+
+let tempoGlobal = 0;
+
+// ---- Mapeamento de mundo (x: 0..DISTANCIA) para tela (pixels) ----
+// A pista nasce em PISTA_INICIO_TELA e a linha de chegada fica
+// SEMPRE fixa em PISTA_FIM_TELA (antes da coluna de presentes).
+// Como c.x nunca diminui (só desacelera por fricção), a posição
+// na tela de cada corredor também nunca regride.
+const PISTA_INICIO_TELA = 150;
+const COLUNA_PRESENTES_LARGURA = 150; // espaço reservado à direita para os presentes
+const PISTA_FIM_TELA = canvas.width - COLUNA_PRESENTES_LARGURA;
+
+function xMundoParaTela(xMundo){
+    const progresso = xMundo / DISTANCIA; // 0..1
+    return PISTA_INICIO_TELA + progresso * (PISTA_FIM_TELA - PISTA_INICIO_TELA);
+}
+
+/* ---------- Loop principal ---------- */
+
+function atualizar(){
+
+    tempoGlobal += 0.05;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    corredores.forEach(c=>{
+
+        c.x += c.impulso;
+        c.impulso *= c.fricao;
+        if(c.impulso < 0.05) c.impulso = 0;
+
+        if(c.x >= DISTANCIA){
+            // Chegou! Soma ponto e volta ao início
+            c.pontos++;
+            c.x = 0;
+            c.impulso = 0;
+            c.chegandoEfeito = 40; // efeito visual de ponto
+        }
+
+        if(c.efeitoEmpurrao > 0) c.efeitoEmpurrao--;
+        if(c.chegandoEfeito > 0) c.chegandoEfeito--;
+
+        // animação sempre rodando
+        c.tick++;
+        if(c.tick > 2){
+            c.tick = 0;
+            c.frame = (c.frame+1) % TOTAL_FRAMES;
+        }
+
+    });
+
+    // Reordenar posições Y APENAS por pontuação (lane como desempate estável)
+    const ranking = [...corredores].sort((a,b)=>
+        b.pontos !== a.pontos ? b.pontos - a.pontos : a.lane - b.lane
+    );
+    ranking.forEach((c, i)=>{
+        c.targetY = LANE_START_Y + i*LANE_HEIGHT + LANE_HEIGHT/2;
+    });
+
+    // Mover suavemente cada corredor em direção ao targetY
+    corredores.forEach(c=>{
+        c.y += (c.targetY - c.y) * 0.08;
+    });
+
+    atualizarProjeteis();
+    atualizarPoofs();
+
+    desenhar();
+
+    requestAnimationFrame(atualizar);
+
+}
+
+/* ---------- Desenho ---------- */
+
+function desenharFundo(){
+
+    if(arenaImg.complete && arenaImg.naturalWidth > 0){
+
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.drawImage(arenaImg, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        ctx.fillStyle = "rgba(5,15,8,0.55)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    } else {
+
+        ctx.fillStyle = "#0c2b14";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    }
+
+}
+
+/* bandeira da Itália desenhada manualmente (sem asset disponível) */
+function desenharBandeiraItalia(x,y,w,h){
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x+8,y);
+    ctx.lineTo(x+w-8,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+8);
+    ctx.lineTo(x+w,y+h-8);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-8,y+h);
+    ctx.lineTo(x+8,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-8);
+    ctx.lineTo(x,y+8);
+    ctx.quadraticCurveTo(x,y,x+8,y);
+    ctx.closePath();
+    ctx.clip();
+
+    const faixa = w/3;
+
+    ctx.fillStyle = "#009246";
+    ctx.fillRect(x, y, faixa, h);
+
+    ctx.fillStyle = "#f1f2f1";
+    ctx.fillRect(x+faixa, y, faixa, h);
+
+    ctx.fillStyle = "#ce2b37";
+    ctx.fillRect(x+faixa*2, y, faixa, h);
+
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x,y,w,h);
+
+}
+
+/* linha de chegada: faixa xadrez branco/preto com textura de "rede" por cima,
+   igual à referência (bandeira de corrida quadriculada) */
+function desenharLinhaChegada(xTela, yTopo, altura){
+
+    const largura = 16;
+    const quadro = 8; // tamanho de cada quadrado do xadrez
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(xTela, yTopo, largura, altura);
+    ctx.clip();
+
+    // xadrez branco/preto
+    const linhas = Math.ceil(altura / quadro) + 1;
+    const colunas = Math.ceil(largura / quadro) + 1;
+
+    for(let l=0; l<linhas; l++){
+        for(let col=0; col<colunas; col++){
+            const par = (l + col) % 2 === 0;
+            ctx.fillStyle = par ? "#f5f5f5" : "#101010";
+            ctx.fillRect(
+                xTela + col*quadro,
+                yTopo + l*quadro,
+                quadro,
+                quadro
+            );
+        }
+    }
+
+    // textura de "rede" (grade fina) por cima, como na referência
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 1;
+    const malha = 6;
+    for(let yy=yTopo; yy<yTopo+altura; yy+=malha){
+        ctx.beginPath();
+        ctx.moveTo(xTela, yy);
+        ctx.lineTo(xTela+largura, yy);
+        ctx.stroke();
+    }
+    for(let xx=xTela; xx<xTela+largura; xx+=malha){
+        ctx.beginPath();
+        ctx.moveTo(xx, yTopo);
+        ctx.lineTo(xx, yTopo+altura);
+        ctx.stroke();
+    }
+
+    // brilho sutil para dar volume (mais claro no centro da faixa)
+    const brilho = ctx.createLinearGradient(xTela,0,xTela+largura,0);
+    brilho.addColorStop(0, "rgba(255,255,255,0.0)");
+    brilho.addColorStop(0.5, "rgba(255,255,255,0.25)");
+    brilho.addColorStop(1, "rgba(255,255,255,0.0)");
+    ctx.fillStyle = brilho;
+    ctx.fillRect(xTela, yTopo, largura, altura);
+
+    ctx.restore();
+
+    // borda externa para destacar a faixa
+    ctx.strokeStyle = "rgba(255,255,255,0.6)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(xTela, yTopo, largura, altura);
+
+}
+
+function desenhar(){
+
+    desenharFundo();
+
+    // Ranking atual por pontuação (para exibir sigla na pista certa)
+    const rankingAtual = [...corredores].sort((a,b)=>
+        b.pontos !== a.pontos ? b.pontos - a.pontos : a.lane - b.lane
+    );
+
+    /* pistas */
+    for(let i=0; i<corredores.length; i++){
+
+        const y = LANE_START_Y + i*LANE_HEIGHT;
+
+        ctx.fillStyle = i % 2 === 0
+            ? "rgba(255,255,255,0.04)"
+            : "rgba(255,255,255,0.0)";
+
+        ctx.fillRect(0, y, canvas.width, LANE_HEIGHT);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+
+        // ── Iniciais rolando da direita para esquerda (sensação de movimento) ──
+        const sigla = rankingAtual[i].pais.sigla;
+        const siglaSpacing = 160; // distância entre repetições
+        const scrollSpeed = 40;   // pixels por segundo (ajustar conforme desejado)
+        const scrollX = (tempoGlobal * scrollSpeed) % siglaSpacing;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(PISTA_INICIO_TELA, y, PISTA_FIM_TELA - PISTA_INICIO_TELA, LANE_HEIGHT);
+        ctx.clip();
+
+        ctx.fillStyle = "rgba(255,255,255,0.10)";
+        ctx.font = "bold 50px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // desenha várias cópias da sigla espaçadas, rolando da direita p/ esquerda
+        const textY = y + LANE_HEIGHT / 2;
+        for(let sx = PISTA_FIM_TELA + siglaSpacing - scrollX; sx > PISTA_INICIO_TELA - siglaSpacing; sx -= siglaSpacing){
+            ctx.fillText(sigla, sx, textY);
+        }
+
+        ctx.restore();
+
+    }
+
+    const yEnd = LANE_START_Y + corredores.length*LANE_HEIGHT;
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.moveTo(0, yEnd);
+    ctx.lineTo(canvas.width, yEnd);
+    ctx.stroke();
+
+    /* linha de chegada — faixa xadrez branco/preto estilo "rede", posição FIXA na tela */
+    const chegadaTelaX = PISTA_FIM_TELA;
+    desenharLinhaChegada(chegadaTelaX, LANE_START_Y-10, corredores.length*LANE_HEIGHT+20);
+
+    /* corredores: bandeira balançando atrás + pássaro animado na frente */
+    corredores.forEach(c=>{
+
+        const p = c.pais;
+
+        // posição na TELA (mapeada a partir do progresso no mundo).
+        // Como c.x nunca diminui, xTela também nunca diminui:
+        // o jogador nunca "volta pra trás" e nunca sai dos limites
+        // da pista (sempre entre PISTA_INICIO_TELA e PISTA_FIM_TELA).
+        const xTela = xMundoParaTela(c.x);
+
+        // ciclo de balanço sincronizado com a corrida (2 "passadas" por ciclo de animação)
+        const t = c.frame / TOTAL_FRAMES;
+        const balancoBandeira = c.terminou ? 0 : Math.sin(t * Math.PI * 4) * 7;
+        const balancoPassaro   = c.terminou ? 0 : Math.sin(t * Math.PI * 4) * 3;
+
+        // ---- bandeira (atrás, ao lado ESQUERDO do corpo, altura do tronco) ----
+        const flagSize = 80;
+        const flagCenterX = xTela - 82 + balancoBandeira*0.4; // mais atrás, à esquerda, balançando lateralmente
+        const flagCenterY = c.y - 38 + balancoBandeira;     // altura do tronco/costas
+
+        ctx.save();
+        ctx.translate(flagCenterX, flagCenterY);
+        ctx.rotate(balancoBandeira * 0.012);          // leve inclinação ao balançar
+        ctx.globalAlpha = 0.95;
+
+        if(p.flagImg && p.flagImg.complete && p.flagImg.naturalWidth > 0){
+
+            ctx.drawImage(
+                p.flagImg,
+                -flagSize/2,
+                -flagSize/2,
+                flagSize,
+                flagSize
+            );
+
+        } else if(p.sigla === "IT"){
+
+            desenharBandeiraItalia(
+                -flagSize/2,
+                -flagSize/2,
+                flagSize,
+                flagSize
+            );
+
+        }
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+
+        // sombra do pássaro
+        ctx.beginPath();
+        ctx.ellipse(xTela, c.y+10, 30, 9, 0, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fill();
+
+        // ---- pássaro animado (na frente da bandeira) ----
+        if(p.sheetImg.complete && p.sheetImg.naturalWidth > 0){
+
+            const sx = (c.frame % COLS) * p.frameW;
+            const sy = Math.floor(c.frame / COLS) * p.frameH;
+
+            const drawSize = 150;
+
+            ctx.drawImage(
+                p.sheetImg,
+                sx, sy,
+                p.frameW, p.frameH,
+                xTela - drawSize/2,
+                c.y - drawSize + 14 + balancoPassaro,
+                drawSize,
+                drawSize
+            );
+
+        }
+
+        // efeito visual de empurrão
+        if(c.efeitoEmpurrao > 0){
+            const alpha = c.efeitoEmpurrao / 12;
+            const raio  = 18 + (12 - c.efeitoEmpurrao) * 2.5;
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.beginPath();
+            ctx.arc(xTela - 30, c.y - 16, raio, 0, Math.PI*2);
+            ctx.fillStyle = "#ffe066";
+            ctx.fill();
+            ctx.globalAlpha = alpha * 0.7;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = "round";
+            for(let s=0; s<3; s++){
+                const ys = c.y - 12 + s*12 - 12;
+                const len = 14 + s*7;
+                ctx.beginPath();
+                ctx.moveTo(xTela - 50, ys);
+                ctx.lineTo(xTela - 50 - len, ys);
+                ctx.stroke();
+            }
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+
+        // efeito visual de PONTO (chegou na linha!)
+        if(c.chegandoEfeito > 0){
+            const alpha = c.chegandoEfeito / 40;
+            const laneY = c.y - LANE_HEIGHT/2;
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.55;
+            ctx.fillStyle = "#ffe066";
+            ctx.fillRect(PISTA_INICIO_TELA, laneY, PISTA_FIM_TELA - PISTA_INICIO_TELA, LANE_HEIGHT);
+            ctx.restore();
+            ctx.globalAlpha = 1;
+
+            // "+1" flutuante
+            const floatY = c.y - 30 - (40 - c.chegandoEfeito) * 1.2;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = "#ffe066";
+            ctx.font = "bold 28px Arial";
+            ctx.textAlign = "center";
+            ctx.shadowColor = "#000";
+            ctx.shadowBlur = 6;
+            ctx.fillText("+1", PISTA_FIM_TELA - 60, floatY);
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+
+        // nome removido a pedido (não é mais exibido acima do pássaro)
+
+    });
+
+    desenharPlacarTopo();
+    desenharPresentes();
+    desenharProjeteis();
+    desenharPoofs();
+    desenharHudTeclas();
+
+}
+
+/* ---------- Coluna de presentes (lado direito, balanço tipo pêndulo) ---------- */
+
+function desenharPresentes(){
+
+    const tamanho = 64;
+    const margemDireita = 40;
+
+    const x = canvas.width - margemDireita - tamanho/2;
+
+    presentes.forEach((g, i)=>{
+
+        if(!corredores[i]) return;
+
+        const y = corredores[i].y; // mesma altura da pista/jogador correspondente
+
+        const angulo = Math.sin(tempoGlobal*1.6 + g.fase) * 0.30; // pêndulo (radianos)
+
+        // fundo circular translúcido (como os ícones do print)
+        ctx.beginPath();
+        ctx.arc(x, y, tamanho/2 + 8, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(x, y - tamanho/2);   // pivô no "topo" (como se estivesse pendurado)
+        ctx.rotate(angulo);
+
+        if(g.img.complete && g.img.naturalWidth > 0){
+
+            ctx.drawImage(
+                g.img,
+                -tamanho/2,
+                0,
+                tamanho,
+                tamanho
+            );
+
+        }
+
+        ctx.restore();
+
+    });
+
+}
+
+/* ---------- Placar fixo no topo ---------- */
+
+function desenharPlacarTopo(){
+
+    const ranking = [...corredores]
+        .sort((a,b)=> b.pontos !== a.pontos ? b.pontos - a.pontos : a.lane - b.lane)
+        .slice(0,3);
+
+    const boxW = 210;
+    const boxH = 62;
+    const startX = canvas.width/2 - (boxW*ranking.length)/2;
+    const y = 14;
+
+    ranking.forEach((c,i)=>{
+
+        const x = startX + i*boxW;
+
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        roundRect(ctx, x, y, boxW-10, boxH, 10);
+        ctx.fill();
+
+        const cores = ["#2ecc71","#3498db","#cd7f32"];
+        ctx.beginPath();
+        ctx.arc(x+30, y+boxH/2, 18, 0, Math.PI*2);
+        ctx.fillStyle = cores[i] || "#777";
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.font = "bold 18px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(i+1, x+30, y+boxH/2+6);
+
+        const p = c.pais;
+
+        if(p.flagImg && p.flagImg.complete && p.flagImg.naturalWidth > 0){
+            ctx.drawImage(p.flagImg, x+58, y+8, boxH-16, boxH-16);
+        } else if(p.sigla === "IT"){
+            desenharBandeiraItalia(x+58, y+8, boxH-16, boxH-16);
+        }
+
+        // Mostra pontos reais (voltas completas)
+        ctx.fillStyle = c.pontos > 0 ? "#ffe066" : "white";
+        ctx.font = "bold 24px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText(c.pontos, x+boxW-56, y+boxH/2+8);
+
+    });
+
+}
+
+function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+}
+
+/* ---------- HUD de teclas removido a pedido ---------- */
+
+function desenharHudTeclas(){
+    // removido — números 1-8 não são mais exibidos
+}
+
+/* ---------- Teclas 1-8 aplicam impulso ---------- */
+
+window.addEventListener("keydown", (e)=>{
+    const idx = parseInt(e.key) - 1;
+    if(idx >= 0 && idx < corredores.length){
+        lancarPresente(idx);
+    }
+});
+
+/* ---------- Responsividade básica ---------- */
+
+let zoomExtra = parseFloat(localStorage.getItem('birdZoom') || '1');
+
+function aplicarEscala(){
+    const escalaBase = Math.min(
+        window.innerWidth  / canvas.width,
+        window.innerHeight / canvas.height
+    );
+    const escalaFinal = escalaBase * zoomExtra;
+    canvas.style.transformOrigin = '0 0';
+    canvas.style.transform = 'scale(' + escalaFinal + ')';
+    document.getElementById('zoom-label').textContent = Math.round(zoomExtra * 100) + '%';
+}
+
+function ajustarZoom(delta){
+    zoomExtra = Math.round(Math.max(0.2, Math.min(2.0, zoomExtra + delta)) * 100) / 100;
+    aplicarEscala();
+}
+
+function salvarConfig(){
+    localStorage.setItem('birdZoom', zoomExtra);
+    alert('✅ Zoom salvo: ' + Math.round(zoomExtra * 100) + '%');
+}
+
+function ajustarTamanho(){ aplicarEscala(); }
+
+window.addEventListener("resize", ajustarTamanho);
+ajustarTamanho();
+
+/* =====================================================
+   LÓGICA TIKTOK / TIKFINITY — BIRD RACE
+===================================================== */
+
+// ── Mapeamentos: giftId/nome → índice do time (lane)
+const birdGiftMap    = {};   // key: giftId|giftName  → { lane, repeat }
+let   birdLikeConf   = { lane: -1, threshold: 50 };
+let   birdMemberConf = { lane: -1, repeat: 1 };
+let   birdShareConf  = { lane: -1, repeat: 1 };
+let   birdLikeCount  = 0;
+let   birdLikeCooldown = false;
+
+/* ── Impulso pelo TikTok ── */
+function birdImpulsionar(lane, repeat, sender, giftId){
+    const r = repeat || 1;
+    for(let i=0;i<r;i++) lancarPresente(lane, sender, giftId);
+}
+
+/* ── Teste manual (dispara impulso no time 0) ── */
+function birdTestImpulso(){
+    const lane = 0;
+    birdImpulsionar(lane, 1);
+    birdNotif("TESTE", null, lane, "impulso manual");
+}
+
+/* ── Notificações na tela ── */
+function birdNotif(user, avatarUrl, lane, tipo, giftId){
+    const panel = document.getElementById('ev-notif-panel');
+    if(!panel) return;
+    const pais = corredores[lane] ? corredores[lane].pais.nome : "?";
+    const div = document.createElement('div');
+    div.className = 'evNotif';
+
+    if(avatarUrl){
+        const img = document.createElement('img');
+        img.className = 'evAvatar';
+        img.src = avatarUrl;
+        img.onerror = ()=>{ img.replaceWith(birdMakeAvatar(user)); };
+        div.appendChild(img);
+    } else {
+        div.appendChild(birdMakeAvatar(user));
+    }
+
+    const span = document.createElement('div');
+    span.className = 'evText';
+
+    // se tiver giftId, mostra a imagem do presente; senão mostra o tipo como texto
+    if(giftId){
+        const giftImg = document.createElement('img');
+        giftImg.src = "assets/" + giftId + ".png";
+        giftImg.style.cssText = "width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-left:4px;";
+        giftImg.onerror = ()=>{ giftImg.replaceWith(document.createTextNode(" 🎁")); };
+        span.innerHTML = `<b>${user}</b> → <b>${pais}</b> `;
+        span.appendChild(giftImg);
+    } else {
+        span.innerHTML = `<b>${user}</b> → <b>${pais}</b> <span style="font-size:15px;">${tipo}</span>`;
+    }
+
+    div.appendChild(span);
+    panel.appendChild(div);
+
+    while(panel.children.length > 4) panel.removeChild(panel.firstChild);
+
+    setTimeout(()=>{
+        div.style.transition='opacity 0.5s';
+        div.style.opacity='0';
+        setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); },500);
+    },3500);
+}
+
+function birdMakeAvatar(nome){
+    const c = document.createElement('canvas');
+    c.width=28;c.height=28;
+    c.className='evAvatar';
+    c.style.borderRadius='50%';
+    const cx=c.getContext('2d');
+    const cores=['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#34495e'];
+    cx.fillStyle=cores[Math.abs((nome.charCodeAt(0)||0))%cores.length];
+    cx.fillRect(0,0,28,28);
+    cx.fillStyle='#fff';
+    cx.font='bold 12px Arial';
+    cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText((nome[0]||'?').toUpperCase(),14,14);
+    return c;
+}
+
+/* ── Conexão TikFinity ── */
+function connectTikFinityBird(){
+    const socket = new WebSocket('ws://localhost:21213/');
+
+    socket.onopen = ()=>{
+        document.getElementById('connDot').classList.add('online');
+    };
+
+    socket.onmessage = (event)=>{
+        let res;
+        try{ res = JSON.parse(event.data); } catch(e){ return; }
+        const d = res.data || res;
+        if(!d) return;
+
+        const user   = d.nickname || d.uniqueId || "Viewer";
+        const avatar = d.profilePictureUrl || d.profilePicUrl || d.avatar || null;
+        const ev     = (res.event || "").toLowerCase();
+
+        if(ev === "gift"){
+            const giftId   = String(d.giftId || "");
+            const giftName = String(d.giftName || "").toLowerCase().trim();
+
+            let conf = birdGiftMap[giftId] || birdGiftMap[giftName];
+            if(conf && conf.lane >= 0 && conf.lane < corredores.length){
+                birdImpulsionar(conf.lane, conf.repeat, user, giftId);
+                birdNotif(user, avatar, conf.lane, "🎁", giftId);
+            }
+            return;
+        }
+
+        if(ev === "like"){
+            if(birdLikeConf.lane < 0) return;
+            if(birdLikeCooldown) return;
+            birdLikeCount += parseInt(d.likeCount)||1;
+            if(birdLikeCount >= birdLikeConf.threshold){
+                birdLikeCooldown = true;
+                birdImpulsionar(birdLikeConf.lane, 1, user);
+                birdNotif(user, avatar, birdLikeConf.lane, "❤️ likes");
+                setTimeout(()=>{ birdLikeCooldown=false; birdLikeCount=0; },2000);
+            }
+            return;
+        }
+
+        if(ev === "member" || ev === "subscribe"){
+            if(birdMemberConf.lane < 0) return;
+            birdImpulsionar(birdMemberConf.lane, birdMemberConf.repeat, user);
+            birdNotif(user, avatar, birdMemberConf.lane, "👑 membro");
+            return;
+        }
+
+        if(ev === "share"){
+            if(birdShareConf.lane < 0) return;
+            birdImpulsionar(birdShareConf.lane, birdShareConf.repeat, user);
+            birdNotif(user, avatar, birdShareConf.lane, "📤 share");
+            return;
+        }
+    };
+
+    socket.onclose = ()=>{
+        document.getElementById('connDot').classList.remove('online');
+        setTimeout(connectTikFinityBird, 5000);
+    };
+}
+
+/* ── PAINEL: Toggle modal ── */
+function toggleBirdModal(){
+    const m  = document.getElementById('birdConfigModal');
+    const ov = document.getElementById('modal-overlay');
+    const open = m.style.display === 'block';
+    m.style.display  = open ? 'none' : 'block';
+    ov.style.display = open ? 'none' : 'block';
+    if(!open) buildBirdPanel();
+}
+
+/* ── Construir selects de times ── */
+function buildBirdPanel(){
+    // checkboxes de times
+    const cb = document.getElementById('times-checkboxes');
+    cb.innerHTML='';
+    paises.forEach((p,i)=>{
+        const label = document.createElement('label');
+        label.style.cssText='display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;';
+        const inp = document.createElement('input');
+        inp.type='checkbox';inp.checked=true;
+        inp.onchange=()=>{
+            // futuramente: ativar/desativar corredor
+        };
+        label.appendChild(inp);
+        label.appendChild(document.createTextNode(p.nome));
+        cb.appendChild(label);
+    });
+
+    // popular selects de times
+    const selects = ['teamForGiftBird','likeTeamBird','memberTeamBird','shareTeamBird'];
+    selects.forEach(id=>{
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.innerHTML='<option value="">-- Time --</option>';
+        paises.forEach((p,i)=>{
+            const opt=document.createElement('option');
+            opt.value=i;opt.textContent=p.nome;
+            el.appendChild(opt);
+        });
+    });
+
+    // restaurar configs salvas
+    const lt=document.getElementById('likeTeamBird');
+    if(lt && birdLikeConf.lane>=0) lt.value=birdLikeConf.lane;
+    const lth=document.getElementById('likeThreshBird');
+    if(lth) lth.value=birdLikeConf.threshold;
+
+    const mt=document.getElementById('memberTeamBird');
+    if(mt && birdMemberConf.lane>=0) mt.value=birdMemberConf.lane;
+    const mr=document.getElementById('memberRepBird');
+    if(mr) mr.value=birdMemberConf.repeat;
+
+    const st=document.getElementById('shareTeamBird');
+    if(st && birdShareConf.lane>=0) st.value=birdShareConf.lane;
+    const sr=document.getElementById('shareRepBird');
+    if(sr) sr.value=birdShareConf.repeat;
+
+    renderGiftList();
+}
+
+/* ── Sincronizar selector de presente → input ── */
+function syncGiftInputBird(){
+    const sel = document.getElementById('giftSelectorBird');
+    const inp = document.getElementById('giftIdBird');
+    if(sel.value === 'CUSTOM'){ inp.value=''; inp.focus(); }
+    else if(sel.value){ inp.value = sel.value; }
+}
+
+/* ── Adicionar mapeamento de presente ── */
+function addGiftMapping(){
+    const giftId   = document.getElementById('giftIdBird').value.trim().toLowerCase();
+    const lane     = parseInt(document.getElementById('teamForGiftBird').value);
+    const repeat   = parseInt(document.getElementById('giftRepeatBird').value)||1;
+
+    if(!giftId){ alert('Digite ou escolha um presente!'); return; }
+    if(isNaN(lane)){ alert('Escolha um time!'); return; }
+
+    birdGiftMap[giftId] = { lane, repeat };
+    renderGiftList();
+
+    document.getElementById('giftIdBird').value='';
+    document.getElementById('giftSelectorBird').value='';
+    document.getElementById('giftRepeatBird').value=1;
+}
+
+/* ── Renderizar lista de presentes mapeados ── */
+function renderGiftList(){
+    const list = document.getElementById('giftListBird');
+    if(!list) return;
+    list.innerHTML='';
+    const keys = Object.keys(birdGiftMap);
+    if(keys.length===0){
+        list.innerHTML='<div style="padding:8px;font-size:11px;color:#555;">Nenhum presente mapeado ainda.</div>';
+        return;
+    }
+    keys.forEach(key=>{
+        const conf = birdGiftMap[key];
+        const pais = paises[conf.lane] ? paises[conf.lane].nome : '?';
+        const div = document.createElement('div');
+        div.className='event-item';
+        div.innerHTML=`
+            <span style="color:#2ecc71;font-weight:bold;">${key}</span>
+            <div class="event-actions-group">
+                <span style="color:#aaa;">→ ${pais} (x${conf.repeat})</span>
+                <button class="btest" onclick="birdTestGift('${key}')">TESTAR</button>
+                <button class="bdel" onclick="deleteGiftBird('${key}')">✕</button>
+            </div>`;
+        list.appendChild(div);
+    });
+}
+
+function birdTestGift(key){
+    const conf = birdGiftMap[key];
+    if(!conf) return;
+    birdImpulsionar(conf.lane, conf.repeat);
+    birdNotif('TESTE', null, conf.lane, '🎁', key);
+}
+
+function deleteGiftBird(key){
+    delete birdGiftMap[key];
+    renderGiftList();
+}
+
+/* ── Salvar config likes ── */
+function saveLikeBird(){
+    const lane = parseInt(document.getElementById('likeTeamBird').value);
+    const th   = parseInt(document.getElementById('likeThreshBird').value)||50;
+    if(isNaN(lane)){ alert('Escolha um time!'); return; }
+    birdLikeConf = { lane, threshold: th };
+    birdLikeCount=0;
+    alert('✅ Config de likes salva! Time: '+paises[lane].nome+' | A cada '+th+' likes');
+}
+
+/* ── Salvar config membro ── */
+function saveMemberBird(){
+    const lane = parseInt(document.getElementById('memberTeamBird').value);
+    const rep  = parseInt(document.getElementById('memberRepBird').value)||1;
+    if(isNaN(lane)){ alert('Escolha um time!'); return; }
+    birdMemberConf = { lane, repeat: rep };
+    alert('✅ Config de membro salva! Time: '+paises[lane].nome);
+}
+function testMemberBird(){
+    if(birdMemberConf.lane<0){ alert('Salve a config de membro primeiro!'); return; }
+    birdImpulsionar(birdMemberConf.lane, birdMemberConf.repeat);
+    birdNotif('MEMBRO_TESTE', null, birdMemberConf.lane, '👑 membro');
+}
+
+/* ── Salvar config share ── */
+function saveShareBird(){
+    const lane = parseInt(document.getElementById('shareTeamBird').value);
+    const rep  = parseInt(document.getElementById('shareRepBird').value)||1;
+    if(isNaN(lane)){ alert('Escolha um time!'); return; }
+    birdShareConf = { lane, repeat: rep };
+    alert('✅ Config de share salva! Time: '+paises[lane].nome);
+}
+function testShareBird(){
+    if(birdShareConf.lane<0){ alert('Salve a config de share primeiro!'); return; }
+    birdImpulsionar(birdShareConf.lane, birdShareConf.repeat);
+    birdNotif('SHARE_TESTE', null, birdShareConf.lane, '📤 share');
+}
+
+/* ── Iniciar conexão TikFinity ── */
+connectTikFinityBird();
+
+atualizar();
+
+</script>
+
+</body>
+</html>
