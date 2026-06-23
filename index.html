@@ -186,7 +186,10 @@
 
 <!-- ── MODAL DE EVENTOS ── -->
 <div id="birdConfigModal" class="bird-modal">
-    <h3>🐦 Bird Race — Gerenciador de Eventos TikTok</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h3 style="margin:0;">🐦 Bird Race — Gerenciador de Eventos TikTok</h3>
+        <button onclick="buildBirdPanel()" title="Atualizar painel (destravar botões)" style="background:#1a4a28;border:1px solid #2ecc71;color:#2ecc71;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">🔄 ATUALIZAR</button>
+    </div>
 
     <!-- TIMES -->
     <div class="ms">
@@ -241,13 +244,17 @@
     <div class="ms">
         <div class="ms-title">❤️ Likes → Impulso</div>
         <div class="form-row">
+            <label style="font-size:11px;color:#aaa;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" id="likeEnabled" style="accent-color:#2ecc71;">
+                <span>Ativar</span>
+            </label>
             <span style="font-size:11px;color:#aaa;">A cada</span>
             <input type="number" id="likeThreshBird" class="id" style="width:55px;text-align:center;" min="1" value="50">
-            <span style="font-size:11px;color:#aaa;">likes, impulsionar:</span>
-            <select id="likeTeamBird" class="sd" style="width:130px;"><option value="">-- Time --</option></select>
+            <span style="font-size:11px;color:#aaa;">likes → time do viewer</span>
             <button onclick="saveLikeBird()" class="badd" style="background:#27ae60;">SALVAR</button>
             <button onclick="birdTestImpulso()" class="btest">TESTAR</button>
         </div>
+        <div style="font-size:10px;color:#555;margin-top:3px;">O impulso vai para o time que o viewer escolheu (pelo chat, presente ou gift).</div>
     </div>
 
     <!-- MEMBRO / SHARE -->
@@ -262,11 +269,31 @@
         </div>
         <div class="form-row">
             <span style="font-size:11px;color:#aaa;width:70px;">Share:</span>
-            <select id="shareTeamBird" class="sd" style="width:130px;"><option value="">-- Time --</option></select>
+            <label style="font-size:11px;color:#aaa;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" id="shareEnabled" style="accent-color:#2ecc71;">
+                <span>Ativar → time do viewer</span>
+            </label>
             <input type="number" id="shareRepBird" class="id" style="width:44px;text-align:center;" min="1" max="10" value="1" title="Impulsos">
             <button onclick="saveShareBird()" class="badd" style="background:#27ae60;">SALVAR</button>
             <button onclick="testShareBird()" class="btest">TESTAR</button>
         </div>
+        <div style="font-size:10px;color:#555;margin-top:3px;">Share vai para o time que o viewer escolheu. Membro ainda pode ter um time fixo.</div>
+    </div>
+
+    <!-- CHAT COMMAND -->
+    <div class="ms">
+        <div class="ms-title">💬 Comando no Chat — <span style="color:#aaa;font-weight:normal;text-transform:none;">ex: <b style="color:#ffe066;">-brasil-</b> impulsiona o Brasil</span></div>
+        <div class="form-row" style="margin-bottom:6px;">
+            <label style="font-size:11px;color:#aaa;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" id="chatCmdEnabled" onchange="saveChatBird()" style="accent-color:#2ecc71;">
+                <span>Ativar comando <b style="color:#ffe066;">-nometime-</b> no chat</span>
+            </label>
+            <span style="font-size:11px;color:#aaa;margin-left:10px;">Impulsos:</span>
+            <input type="number" id="chatRepBird" class="id" style="width:44px;text-align:center;" min="1" max="10" value="1" title="Impulsos por comando">
+            <button onclick="saveChatBird()" class="badd" style="background:#27ae60;">SALVAR</button>
+            <button onclick="testChatBird()" class="btest">TESTAR</button>
+        </div>
+        <div id="chatTeamNames" style="font-size:10px;color:#555;padding:2px 0;"></div>
     </div>
 
     <button onclick="toggleBirdModal()" style="width:100%;padding:8px;background:#1a4a28;color:#2ecc71;border:1px solid #2ecc71;border-radius:6px;font-weight:bold;cursor:pointer;font-size:12px;">✕ FECHAR</button>
@@ -1215,11 +1242,23 @@ ajustarTamanho();
 
 // ── Mapeamentos: giftId/nome → índice do time (lane)
 const birdGiftMap    = {};   // key: giftId|giftName  → { lane, repeat }
-let   birdLikeConf   = { lane: -1, threshold: 50 };
+const userTeamMap    = {};   // key: userId/nickname   → lane (time que o viewer escolheu)
+let   birdLikeConf   = { enabled: false, threshold: 50 };
 let   birdMemberConf = { lane: -1, repeat: 1 };
-let   birdShareConf  = { lane: -1, repeat: 1 };
+let   birdShareConf  = { enabled: false, repeat: 1 };
+let   birdChatConf   = { enabled: false, repeat: 1 };
 let   birdLikeCount  = 0;
 let   birdLikeCooldown = false;
+
+/* ── Registrar o time do viewer ── */
+function setUserTeam(userId, lane){
+    if(userId && lane >= 0) userTeamMap[userId] = lane;
+}
+function getUserTeam(userId){
+    if(!userId) return -1;
+    const lane = userTeamMap[userId];
+    return (lane !== undefined) ? lane : -1;
+}
 
 /* ── Impulso pelo TikTok ── */
 function birdImpulsionar(lane, repeat, sender, giftId){
@@ -1325,20 +1364,42 @@ function connectTikFinityBird(){
 
             let conf = birdGiftMap[giftId] || birdGiftMap[giftName];
             if(conf && conf.lane >= 0 && conf.lane < corredores.length){
+                setUserTeam(user, conf.lane); // registra o time do viewer pelo presente
                 birdImpulsionar(conf.lane, conf.repeat, user, giftId);
                 birdNotif(user, avatar, conf.lane, "🎁", giftId);
             }
             return;
         }
 
+        // ── Comando de chat: -nometime- envia impulso para o time escolhido ──
+        if(ev === "chat" || ev === "comment"){
+            if(!birdChatConf.enabled) return;
+            const msg = String(d.comment || d.message || d.text || "").trim().toLowerCase();
+            if(msg.startsWith("-") && msg.endsWith("-") && msg.length > 2){
+                const teamName = msg.slice(1, -1).trim();
+                const idx = paises.findIndex(p =>
+                    p.nome.toLowerCase() === teamName ||
+                    p.sigla.toLowerCase() === teamName
+                );
+                if(idx >= 0){
+                    setUserTeam(user, idx); // registra o time do viewer pelo chat
+                    birdImpulsionar(idx, birdChatConf.repeat, user, null);
+                    birdNotif(user, avatar, idx, "💬 chat");
+                }
+            }
+            return;
+        }
+
         if(ev === "like"){
-            if(birdLikeConf.lane < 0) return;
+            if(!birdLikeConf.enabled) return;
             if(birdLikeCooldown) return;
+            const lane = getUserTeam(user);
+            if(lane < 0) return; // viewer ainda não escolheu um time
             birdLikeCount += parseInt(d.likeCount)||1;
             if(birdLikeCount >= birdLikeConf.threshold){
                 birdLikeCooldown = true;
-                birdImpulsionar(birdLikeConf.lane, 1, user);
-                birdNotif(user, avatar, birdLikeConf.lane, "❤️ likes");
+                birdImpulsionar(lane, 1, user);
+                birdNotif(user, avatar, lane, "❤️ likes");
                 setTimeout(()=>{ birdLikeCooldown=false; birdLikeCount=0; },2000);
             }
             return;
@@ -1346,15 +1407,18 @@ function connectTikFinityBird(){
 
         if(ev === "member" || ev === "subscribe"){
             if(birdMemberConf.lane < 0) return;
+            setUserTeam(user, birdMemberConf.lane); // membro ainda tem time fixo
             birdImpulsionar(birdMemberConf.lane, birdMemberConf.repeat, user);
             birdNotif(user, avatar, birdMemberConf.lane, "👑 membro");
             return;
         }
 
         if(ev === "share"){
-            if(birdShareConf.lane < 0) return;
-            birdImpulsionar(birdShareConf.lane, birdShareConf.repeat, user);
-            birdNotif(user, avatar, birdShareConf.lane, "📤 share");
+            if(!birdShareConf.enabled) return;
+            const lane = getUserTeam(user);
+            if(lane < 0) return; // viewer ainda não escolheu um time
+            birdImpulsionar(lane, birdShareConf.repeat, user);
+            birdNotif(user, avatar, lane, "📤 share");
             return;
         }
     };
@@ -1393,8 +1457,8 @@ function buildBirdPanel(){
         cb.appendChild(label);
     });
 
-    // popular selects de times
-    const selects = ['teamForGiftBird','likeTeamBird','memberTeamBird','shareTeamBird'];
+    // popular selects de times (apenas gift e membro agora têm select fixo)
+    const selects = ['teamForGiftBird','memberTeamBird'];
     selects.forEach(id=>{
         const el = document.getElementById(id);
         if(!el) return;
@@ -1407,8 +1471,8 @@ function buildBirdPanel(){
     });
 
     // restaurar configs salvas
-    const lt=document.getElementById('likeTeamBird');
-    if(lt && birdLikeConf.lane>=0) lt.value=birdLikeConf.lane;
+    const le=document.getElementById('likeEnabled');
+    if(le) le.checked = birdLikeConf.enabled;
     const lth=document.getElementById('likeThreshBird');
     if(lth) lth.value=birdLikeConf.threshold;
 
@@ -1417,12 +1481,25 @@ function buildBirdPanel(){
     const mr=document.getElementById('memberRepBird');
     if(mr) mr.value=birdMemberConf.repeat;
 
-    const st=document.getElementById('shareTeamBird');
-    if(st && birdShareConf.lane>=0) st.value=birdShareConf.lane;
+    const se=document.getElementById('shareEnabled');
+    if(se) se.checked = birdShareConf.enabled;
     const sr=document.getElementById('shareRepBird');
     if(sr) sr.value=birdShareConf.repeat;
 
     renderGiftList();
+
+    // chat cmd
+    const ce = document.getElementById('chatCmdEnabled');
+    if(ce) ce.checked = birdChatConf.enabled;
+    const cr = document.getElementById('chatRepBird');
+    if(cr) cr.value = birdChatConf.repeat;
+
+    // mostrar nomes válidos para o chat
+    const ctn = document.getElementById('chatTeamNames');
+    if(ctn){
+        const nomes = paises.map(p => '<b style="color:#2ecc71;">-'+p.nome.toLowerCase()+'-</b>/<b style="color:#2ecc71;">-'+p.sigla.toLowerCase()+'-</b>').join(' &nbsp;·&nbsp; ');
+        ctn.innerHTML = 'Comandos: ' + nomes;
+    }
 }
 
 /* ── Sincronizar selector de presente → input ── */
@@ -1490,12 +1567,13 @@ function deleteGiftBird(key){
 
 /* ── Salvar config likes ── */
 function saveLikeBird(){
-    const lane = parseInt(document.getElementById('likeTeamBird').value);
+    const enabled = document.getElementById('likeEnabled').checked;
     const th   = parseInt(document.getElementById('likeThreshBird').value)||50;
-    if(isNaN(lane)){ alert('Escolha um time!'); return; }
-    birdLikeConf = { lane, threshold: th };
+    birdLikeConf = { enabled, threshold: th };
     birdLikeCount=0;
-    alert('✅ Config de likes salva! Time: '+paises[lane].nome+' | A cada '+th+' likes');
+    if(enabled){
+        alert('✅ Likes ativado! A cada '+th+' likes o time do viewer recebe impulso.');
+    }
 }
 
 /* ── Salvar config membro ── */
@@ -1514,16 +1592,33 @@ function testMemberBird(){
 
 /* ── Salvar config share ── */
 function saveShareBird(){
-    const lane = parseInt(document.getElementById('shareTeamBird').value);
+    const enabled = document.getElementById('shareEnabled').checked;
     const rep  = parseInt(document.getElementById('shareRepBird').value)||1;
-    if(isNaN(lane)){ alert('Escolha um time!'); return; }
-    birdShareConf = { lane, repeat: rep };
-    alert('✅ Config de share salva! Time: '+paises[lane].nome);
+    birdShareConf = { enabled, repeat: rep };
+    if(enabled){
+        alert('✅ Share ativado! Impulsos: '+rep+' → vai para o time do viewer.');
+    }
 }
 function testShareBird(){
-    if(birdShareConf.lane<0){ alert('Salve a config de share primeiro!'); return; }
-    birdImpulsionar(birdShareConf.lane, birdShareConf.repeat);
-    birdNotif('SHARE_TESTE', null, birdShareConf.lane, '📤 share');
+    if(!birdShareConf.enabled){ alert('Ative e salve o share primeiro!'); return; }
+    birdImpulsionar(0, birdShareConf.repeat);
+    birdNotif('SHARE_TESTE', null, 0, '📤 share');
+}
+
+/* ── Salvar config chat ── */
+function saveChatBird(){
+    const enabled = document.getElementById('chatCmdEnabled').checked;
+    const rep     = parseInt(document.getElementById('chatRepBird').value)||1;
+    birdChatConf  = { enabled, repeat: rep };
+    if(enabled){
+        alert('✅ Comando de chat ativado! Impulsos por comando: '+rep+'\nExemplo: -brasil- impulsiona o Brasil');
+    }
+}
+function testChatBird(){
+    if(!birdChatConf.enabled){ alert('Ative e salve o comando de chat primeiro!'); return; }
+    // Testa no primeiro time disponível
+    birdImpulsionar(0, birdChatConf.repeat);
+    birdNotif('CHAT_TESTE', null, 0, '💬 chat');
 }
 
 /* ── Iniciar conexão TikFinity ── */
